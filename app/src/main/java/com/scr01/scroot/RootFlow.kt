@@ -637,19 +637,33 @@ object RootFlow {
     internal fun bootIntegrityMismatch(
         properties: Map<String, String?>
     ): String? {
+        val verifiedBootState = properties["ro.boot.verifiedbootstate"]
+        val flashLocked = properties["ro.boot.flash.locked"]
+        val vbmetaDeviceState = properties["ro.boot.vbmeta.device_state"]
+    
+        val stockLocked =
+            verifiedBootState == "green" &&
+            flashLocked == "1" &&
+            vbmetaDeviceState == "locked"
+    
+        val stockUnlocked =
+            verifiedBootState == "orange" &&
+            flashLocked == "0" &&
+            vbmetaDeviceState == "unlocked"
+    
         return when {
-            properties["ro.boot.verifiedbootstate"] != "green" ->
-                "verified boot state"
-            properties["ro.boot.flash.locked"] != "1" ->
-                "bootloader lock"
-            properties["ro.boot.vbmeta.device_state"] != "locked" ->
-                "vbmeta device state"
+            !stockLocked && !stockUnlocked ->
+                "boot state"
+    
             properties["ro.boot.vbmeta.hash_alg"] != "sha256" ->
                 "vbmeta hash algorithm"
+    
             properties["ro.boot.vbmeta.digest"] != EXPECTED_VBMETA_DIGEST ->
                 "vbmeta digest"
+    
             properties["ro.boot.veritymode"] != "enforcing" ->
                 "verity mode"
+    
             else -> null
         }
     }
